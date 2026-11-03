@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {initialState,buySupplies,buyUpgrade,runDay,restore} from '../src/game.js';
+test('supplies deduct cash and cannot overspend',()=>{const s=buySupplies(initialState(),20);assert.equal(s.cash,30);assert.equal(s.inventory,20);assert.throws(()=>buySupplies(s,100));});
+test('day sales reconcile cash, contribution and spoilage',()=>{const s=buySupplies(initialState(),40),n=runDay(s),r=n.history[0];assert.equal(n.cash,Math.round((s.cash+r.revenue-r.contribution)*100)/100);assert.equal(n.inventory,0);assert.equal(r.sold+r.spoiled,40);assert.equal(n.day,2);});
+test('cooler preserves leftover supplies',()=>{let s=buyUpgrade(initialState(),'cooler');s=buySupplies(s,20);s.price=5;const n=runDay(s);assert.equal(n.history[0].spoiled,0);assert.equal(n.inventory+n.history[0].sold,20);});
+test('duplicate upgrades and empty days are rejected',()=>{assert.throws(()=>runDay(initialState()));assert.throws(()=>buyUpgrade(buyUpgrade(initialState(),'sign'),'sign'));});
+test('save restores progress and rejects malformed values',()=>{const s=runDay(buySupplies(initialState(),10));assert.deepEqual(restore(JSON.stringify(s)),s);assert.deepEqual(restore('{broken'),initialState());assert.deepEqual(restore(JSON.stringify({...s,cash:-1})),initialState());});
