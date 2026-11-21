@@ -1,4 +1,4 @@
-import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed} from './stand.js';
+import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed} from './stand.js?v=4.1';
 const $=id=>document.getElementById(id), money=n=>'$'+n.toFixed(2);
 let state;try{state=restoreWalk(localStorage.getItem(KEY),localStorage.getItem('lemonventure.v1'));}catch{state=fresh();}
 let stations=getStations(state);
