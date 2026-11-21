@@ -1,10 +1,10 @@
 # LemonVenture
 
-A phone-friendly Road Home lemonade business game. v0.3 replaces the instant sales calculator with a live, top-down stand: a walking player, animated customers, timed station actions, ingredients, drink preparation, earnings pickup, and upgrades.
+A phone-friendly Road Home lemonade business game. v0.4 includes the instant sales calculator with a live, top-down stand: a walking player, animated customers, timed station actions, ingredients, drink preparation, earnings pickup, and upgrades.
 
 ## Play
 
-Press and hold anywhere in the courtyard for 180 ms, then drag to move. The faint floating joystick anchors to the initial press. Drag farther to walk faster; release to stop. Pointer cancellation, lost capture, window blur, opening the stand menu, pausing, and hiding the page all clear movement. Only the first active pointer controls the avatar. Desktop players can also use arrows or WASD.
+Press and hold anywhere in the courtyard for 80 ms, then drag to move. The faint floating joystick anchors to the initial press. Drag farther to walk faster; release to stop. Pointer cancellation, lost capture, window blur, opening the stand menu, pausing, and hiding the page all clear movement. Only the first active pointer controls the avatar. Desktop players can also use arrows or WASD.
 
 Stand still in a floor ring to work. Progress rings show the action completing:
 
@@ -39,3 +39,9 @@ Open http://localhost:3000. Serve the repository root on a static host. GitHub A
 - `tests/`: economy, persistence, and floating-joystick behavior.
 
 Progress saves locally after each transaction. The first visit migrates legacy v1 balances, stock, customizations, and upgrades into the separate v3 save key; the old save remains intact. There are no accounts, cloud saves, analytics, or external assets. Visible customer positions and the avatar position reset on reload; ingredients, drinks, pending earnings, and business totals persist.
+
+## Rearranging stations
+
+Hold still on a station or its ring for 650 ms to enter wobble mode. Drag any of the six stations, then tap Done to resume. The world pauses while editing. Equipment and work rings move together; customer queues follow the serving counter. Positions stay inside the courtyard, and overlapping drops return to the previous position. Reset layout restores the original arrangement. Layout and business progress save together. A drag started on a station cancels the edit hold, so normal movement remains available there.
+
+Movement speed is 30% higher (247 world units/second, previously 190), and the joystick activation hold is reduced from 180 to 80 ms.

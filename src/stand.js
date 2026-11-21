@@ -1,3 +1,6 @@
+export const MOVE_SPEED = 190 * 1.3;
+export const MOVE_HOLD_MS = 80;
+export const EDIT_HOLD_MS = 650;
 export const KEY = 'lemonventure.walkabout.v3';
 export const STATIONS = [
   {id:'lemons',x:90,y:270,color:'#e5b930',label:'LEMONS',icon:'🍋'},
@@ -12,12 +15,12 @@ export const UPGRADES = {
   cooler:{name:'Ice cooler',cost:25,description:'Carry 5 of each ingredient.'},
   stand:{name:'Bigger stand',cost:45,description:'Carry 5 drinks and mix twice as fast.'}
 };
-export function fresh(){return {version:3,cash:40,price:2,name:'My sunny stand',color:'#f3c64e',lemons:0,ice:0,drinks:0,pendingCash:0,upgrades:[],served:0,totalRevenue:0,totalExpenses:0,community:0,history:[]};}
+export function fresh(){return {version:3,cash:40,price:2,name:'My sunny stand',color:'#f3c64e',lemons:0,ice:0,drinks:0,pendingCash:0,upgrades:[],served:0,totalRevenue:0,totalExpenses:0,community:0,history:[],layout:{}};}
 export function restoreWalk(raw,legacy){
   try{
     if(raw){const s=JSON.parse(raw);const numbers=['cash','price','lemons','ice','drinks','pendingCash','served','totalRevenue','totalExpenses','community'];
       if(s.version!==3||!numbers.every(k=>Number.isFinite(s[k])&&s[k]>=0)||s.price<.5||s.price>5||!['lemons','ice','drinks','served'].every(k=>Number.isInteger(s[k]))||!Array.isArray(s.upgrades)||s.upgrades.some(k=>!UPGRADES[k])||typeof s.name!=='string'||!/^#[0-9a-f]{6}$/i.test(s.color)||!Array.isArray(s.history))return fresh();
-      return {...s,history:s.history.filter(r=>r&&Number.isFinite(r.revenue)&&Number.isFinite(r.sold)&&Number.isFinite(r.day)).slice(-50)};
+      return {...s,layout:normalizeLayout(s.layout),history:s.history.filter(r=>r&&Number.isFinite(r.revenue)&&Number.isFinite(r.sold)&&Number.isFinite(r.day)).slice(-50)};
     }
     if(legacy){const old=JSON.parse(legacy);if(old.version===1&&Number.isFinite(old.cash)&&old.cash>=0){const s=fresh();for(const k of ['cash','price','name','color','totalRevenue','totalExpenses','community'])if(typeof old[k]===typeof s[k])s[k]=old[k];s.price=Math.max(.5,Math.min(5,s.price));s.color=/^#[0-9a-f]{6}$/i.test(s.color)?s.color:'#f3c64e';s.upgrades=(old.upgrades||[]).filter(k=>UPGRADES[k]);const stock=Math.max(0,Math.floor(Number(old.inventory)||0));s.lemons=stock;s.ice=stock;return s;}}
   }catch{/* A missing or damaged save starts a new adventure. */}
@@ -50,7 +53,18 @@ export class FloatingStick {
   constructor(){this.stop();}
   start(id,x,y,time){if(this.id!==null)return false;this.id=id;this.x=x;this.y=y;this.px=x;this.py=y;this.time=time;return true;}
   move(id,x,y){if(this.id!==id)return;this.px=x;this.py=y;}
-  sample(time){if(this.id===null||time-this.time<180)return {x:0,y:0,active:false};return {...joystickVector(this.px-this.x,this.py-this.y),active:true};}
+  sample(time){if(this.id===null||time-this.time<MOVE_HOLD_MS)return {x:0,y:0,active:false};return {...joystickVector(this.px-this.x,this.py-this.y),active:true};}
   end(id){if(this.id===id)this.stop();}
   stop(){this.id=null;this.x=0;this.y=0;this.px=0;this.py=0;this.time=0;}
+}
+
+// Layout coordinates describe the work ring; the matching equipment moves with it.
+export function getStations(state){return STATIONS.map(s=>({...s,...state.layout?.[s.id]}));}
+export function boundPosition(x,y){return {x:Math.max(90,Math.min(510,x)),y:Math.max(270,Math.min(740,y))};}
+export function placementAllowed(stations,id,point){return stations.every(s=>s.id===id||Math.abs(s.x-point.x)>=112||Math.abs(s.y-point.y)>=150);}
+export function normalizeLayout(raw){
+ const layout={};if(!raw||typeof raw!=='object'||!Object.keys(raw).length)return layout;
+ const wanted=STATIONS.map(s=>{const p=raw[s.id];return p&&Number.isFinite(p.x)&&Number.isFinite(p.y)?{...s,...boundPosition(p.x,p.y)}:{...s};});
+ for(const s of wanted){if(!placementAllowed(wanted,s.id,s))return {};layout[s.id]={x:s.x,y:s.y};}
+ return layout;
 }
