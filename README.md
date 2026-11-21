@@ -1,6 +1,6 @@
 # LemonVenture
 
-A phone-friendly Road Home lemonade business game. v0.4 includes the instant sales calculator with a live, top-down stand: a walking player, animated customers, timed station actions, ingredients, drink preparation, earnings pickup, and upgrades.
+A phone-friendly Road Home lemonade business game. v0.5 includes the instant sales calculator with a live, top-down stand: a walking player, animated customers, timed station actions, ingredients, drink preparation, earnings pickup, and upgrades.
 
 ## Play
 
@@ -45,3 +45,13 @@ Progress saves locally after each transaction. The first visit migrates legacy v
 Hold still on a station or its ring for 650 ms to enter wobble mode. Drag any of the six stations, then tap Done to resume. The world pauses while editing. Equipment and work rings move together; customer queues follow the serving counter. Positions stay inside the courtyard, and overlapping drops return to the previous position. Reset layout restores the original arrangement. Layout and business progress save together. A drag started on a station cancels the edit hold, so normal movement remains available there.
 
 Movement speed is 30% higher (247 world units/second, previously 190), and the joystick activation hold is reduced from 180 to 80 ms.
+
+## v0.5: team, shop and village
+
+The shop has 14 one-time purchases across Equipment, Team and Customers, with three cards per page. Shoes improve walking speed, crates expand ingredient capacity, the mixer and counter shorten action time, flyers and banners increase arrivals, and benches extend customer patience. The existing sign, cooler and stand remain compatible with older saves.
+
+Four animated employees can be hired: a supply runner, lemonade maker, server and cashier. They travel to stations and perform real resource transactions. They respect moved layouts, pause with the game, and resume after reload. Hiring is a one-time game purchase, without recurring wages.
+
+Tap the community chest in the HUD or the Village tab to see the settlement. Every sale adds 5% to unspent community funds. The Contribute & build button spends only the displayed project cost and adds a permanent village feature. Early projects cost $0.50, $1, $2, $3, $5, $8, $12 and $18. Features include a second home, road, trees, garden, another home, well, school and market. Later contributions keep expanding homes and greenery. Each build plays a growth/confetti animation. The village remains visible above the stand. Unspent funds, invested funds and village level all persist.
+
+Tests include upgrade effects, a full autonomous employee economy, layout-aware workers, legacy migration, and conservation of community funds.
