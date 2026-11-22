@@ -4,7 +4,7 @@ import {fresh,effects,capacity,purchase,UPGRADES,nextProject,developVillage,rest
 import {syncWorkers,stepWorkers} from '../src/workers.js';
 test('shop upgrades change capacity, speed, service, customer frequency and patience',()=>{
  const base=fresh(),s={...base,upgrades:Object.keys(UPGRADES)};
- assert.equal(Object.keys(UPGRADES).length,14);
+ assert.equal(Object.keys(UPGRADES).length,42);
  assert.ok(effects(s).speed>effects(base).speed);
  assert.ok(effects(s).mixSeconds<effects(base).mixSeconds/2);
  assert.ok(effects(s).serveSeconds<effects(base).serveSeconds);

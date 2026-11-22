@@ -18,7 +18,7 @@ test('contributions increase fame, customer volume and willingness to pay',()=>{
  assert.ok(marketInfo(after,'boardwalk').willingness>grown.willingness);assert.ok(marketInfo(after,'boardwalk').traffic>grown.traffic);
 });
 test('live pricing is bounded and customers and employees respect budgets',()=>{
- const s=fresh();assert.equal(setPrice(s,100).price,5);assert.equal(setPrice(s,-10).price,.5);assert.equal(setPrice(s,NaN),s);assert.equal(setPrice(s,2.25).price,2.25);
+ const s=fresh();assert.equal(setPrice(s,100).price,20);assert.equal(setPrice(s,-10).price,.5);assert.equal(setPrice(s,NaN),s);assert.equal(setPrice(s,2.25).price,2.25);
  assert.equal(willingToPay({...s,price:3},{maxPrice:2.5}),false);assert.equal(willingToPay({...s,price:2},{maxPrice:2.5}),true);
  let shop={...s,upgrades:['server'],drinks:1};const workers=syncWorkers(shop,[]),customers=[{mode:'waiting',maxPrice:1}];for(let i=0;i<100;i++)shop=stepWorkers(shop,workers,getStations(shop),customers,.1).state;assert.equal(shop.served,0);assert.equal(shop.drinks,1);
 });
