@@ -1,6 +1,7 @@
-import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed,effects,nextProject,developVillage,LOCATIONS,GAME_DAY_SECONDS,marketInfo,setPrice,moveLocation,advanceClock,willingToPay} from './stand.js?v=6.2';
-import {syncWorkers,stepWorkers} from './workers.js?v=6.2';
-import {drawVillage} from './village.js?v=6.2';
+import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed,effects,nextProject,developVillage,LOCATIONS,GAME_DAY_SECONDS,marketInfo,setPrice,moveLocation,advanceClock,willingToPay,setCommunityRate} from './stand.js?v=7';
+import {syncWorkers,stepWorkers} from './workers.js?v=7';
+import {drawVillage} from './village.js?v=7';
+import {drawSurroundings,drawStorefront,drawSupplyBin,drawMixer,drawRegister,THEMES} from './scenery.js?v=7';
 const $=id=>document.getElementById(id), money=n=>'$'+n.toFixed(2);
 let state;try{state=restoreWalk(localStorage.getItem(KEY),localStorage.getItem('lemonventure.v1'));}catch{state=fresh();}
 let stations=getStations(state);let workers=syncWorkers(state,[]);let shopFilter='all',shopPage=0,buildAt=-100000,lastCommunity=state.community;let selectedLocation=state.location,clockTick=0;
@@ -14,14 +15,14 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(state));saveDirty=fa
 function changed(){saveDirty=true;if(state.community>lastCommunity){$('community-chest').classList.remove('funded');void $('community-chest').offsetWidth;$('community-chest').classList.add('funded');}lastCommunity=state.community;updateHUD();}
 function say(message){toast=message;toastTime=2.8;setTask(message);}
 function setTask(message){if($('task').textContent!==message)$('task').textContent=message;}
-function updateHUD(){for(const [id,value] of [['cash',money(state.cash)],['pending',money(state.pendingCash)],['served',state.served],['community',money(state.community)]])$(id).textContent=value;$('carry').textContent=`🍋 ${state.lemons} · 🧊 ${state.ice} · 🥤 ${state.drinks}`;$('day').textContent=`${LOCATIONS[state.location].icon} ${LOCATIONS[state.location].name} · Day ${state.day} · ${Math.ceil(GAME_DAY_SECONDS-state.dayElapsed)}s`;const market=marketInfo(state);$('live-price').textContent=money(state.price)+'/cup';$('price-down').disabled=state.price<=.5;$('price-up').disabled=state.price>=5;$('price-outlook').textContent=`Fame ${Math.round(market.notoriety)} · Typical budget ~${money(market.willingness)}`;$('price').value=state.price;$('price-value').textContent=money(state.price);$('grant').hidden=editing||!canRestartGrant(state);$('community-chest').style.setProperty('--fill',Math.min(1,state.community/nextProject(state).cost));}
+function updateHUD(){for(const [id,value] of [['cash',money(state.cash)],['pending',money(state.pendingCash)],['served',state.served],['community',money(state.community)]])$(id).textContent=value;$('carry').textContent=`🍋 ${state.lemons} · 🧊 ${state.ice} · 🥤 ${state.drinks}`;$('day').textContent=`${LOCATIONS[state.location].icon} ${LOCATIONS[state.location].name} · Day ${state.day} · ${Math.ceil(GAME_DAY_SECONDS-state.dayElapsed)}s`;const market=marketInfo(state);$('live-price').textContent=money(state.price)+'/cup';$('price-down').disabled=state.price<=.5;$('price-up').disabled=state.price>=5;$('price-outlook').textContent=`Fame ${Math.round(market.notoriety)} · Typical budget ~${money(market.willingness)}`;$('price').value=state.price;$('price-value').textContent=money(state.price);$('grant').hidden=editing||!canRestartGrant(state);$('community-label').textContent='🏡 Community · '+state.communityRate+'%';$('community-chest').style.setProperty('--fill',Math.min(1,state.community/nextProject(state).cost));}
 function resize(){cancelGesture();cancelDrag();const r=canvas.getBoundingClientRect();W=r.width;H=r.height;const dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);scale=Math.min(W/600,(H-62)/800);scale=Math.max(.1,scale);ox=(W-600*scale)/2;oy=36+(H-62-800*scale)/2;}
 new ResizeObserver(resize).observe(canvas);
 function stopInput(){cancelGesture();stick.stop();keys.clear();player.moving=false;$('stick').classList.remove('active');}
 function syncPause(){paused=manualPause||editing||$('panel').open||document.hidden;$('paused').hidden=!manualPause;$('pause').textContent=manualPause?'▶':'Ⅱ';$('pause').setAttribute('aria-pressed',String(manualPause));$('pause').setAttribute('aria-label',manualPause?'Resume game':'Pause game');if(paused)stopInput();}
 function localPoint(e){const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
 function worldPoint(p){return {x:(p.x-ox)/scale,y:(p.y-oy)/scale};}
-function hitStation(p){const w=worldPoint(p);return [...stations].reverse().find(s=>Math.abs(w.x-s.x)<Math.max(55,24/scale)&&w.y>s.y-120&&w.y<s.y+36);}
+function hitStation(p){const w=worldPoint(p);return [...stations].reverse().find(s=>Math.abs(w.x-s.x)<Math.max(s.id==='serve'?104:55,24/scale)&&w.y>s.y-(s.id==='serve'?180:150)&&w.y<s.y+36);}
 function cancelGesture(){if(candidate)clearTimeout(candidate.timer);candidate=null;}
 function cancelDrag(){if(dragging){Object.assign(stations.find(s=>s.id===dragging.id),dragging.original);dragging=null;}}
 function beginEdit(id=null,p=null,pointer=null){
@@ -68,7 +69,7 @@ function renderPanel(){
  renderResults();
 }
 function renderResults(){
- $('results').replaceChildren(...[['Customers served',state.served],['Total sales',money(state.totalRevenue)],['Supplies & upgrades',money(state.totalExpenses)],['Awaiting collection',money(state.pendingCash)],['Community chest',money(state.community)],['Invested in village',money(state.communityInvested)],['Village projects',state.villageLevel],['Reputation',Math.round(marketInfo(state).notoriety)+'/100'],['Rent paid',money(state.rentPaid)]].map(([label,value])=>{const p=document.createElement('p'),s=document.createElement('span'),b=document.createElement('strong');s.textContent=label;b.textContent=value;p.append(s,b);return p;}));
+ $('results').replaceChildren(...[['Customers served',state.served],['Total sales',money(state.totalRevenue)],['Operating profit',money(state.operatingProfit)],['Community share',state.communityRate+'%'],['Supplies & upgrades',money(state.totalExpenses)],['Awaiting collection',money(state.pendingCash)],['Community chest',money(state.community)],['Invested in village',money(state.communityInvested)],['Village projects',state.villageLevel],['Reputation',Math.round(marketInfo(state).notoriety)+'/100'],['Rent paid',money(state.rentPaid)]].map(([label,value])=>{const p=document.createElement('p'),s=document.createElement('span'),b=document.createElement('strong');s.textContent=label;b.textContent=value;p.append(s,b);return p;}));
 }
 function renderShop(){
  const items=Object.entries(UPGRADES).filter(([,u])=>shopFilter==='all'||u.category===shopFilter);const pages=Math.max(1,Math.ceil(items.length/3));shopPage=Math.min(shopPage,pages-1);
@@ -87,7 +88,7 @@ $('town').onclick=()=>openPanel('town');
 function renderTown(){
  const place=LOCATIONS[selectedLocation],current=selectedLocation===state.location,market=marketInfo(state,selectedLocation);
  for(const b of document.querySelectorAll('[data-location]')){b.setAttribute('aria-pressed',String(b.dataset.location===selectedLocation));b.classList.toggle('leased',b.dataset.location===state.location);}
- $('town-name').textContent=place.icon+' '+place.name;$('town-description').textContent=place.description;
+ const preview=$('store-preview'),pc=preview.getContext('2d');pc.clearRect(0,0,preview.width,preview.height);pc.fillStyle=place.color;pc.fillRect(0,0,preview.width,preview.height);drawStorefront(pc,selectedLocation,160,190,state.color,state.price,time,false);$('town-name').textContent=place.icon+' '+place.name;$('town-description').textContent=place.description;
  $('town-economy').textContent=money(place.rent)+'/day · Traffic '+place.traffic.toFixed(2)+'× · Visibility '+place.visibility.toFixed(2)+'×';
  $('town-budgets').textContent='With your reputation: '+market.traffic.toFixed(2)+'× customer exposure · Typical budget ~'+money(market.willingness);
  $('lease').textContent=current?'✓ Current location':place.rent?'Rent here · '+money(place.rent)+' upfront':'Move here · free';$('lease').disabled=current||state.cash<place.rent;
@@ -95,7 +96,8 @@ function renderTown(){
 }
 for(const b of document.querySelectorAll('[data-location]'))b.onclick=()=>{selectedLocation=b.dataset.location;renderTown();};
 $('lease').onclick=()=>{const next=moveLocation(state,selectedLocation);if(next===state)return;state=next;clockTick=0;customers=[];spawn=.5;changed();save();renderTown();say('Welcome to '+LOCATIONS[state.location].name+'!');};
-function renderVillage(){const project=nextProject(state);$('village-level').textContent='Village level '+state.villageLevel+' · Fame '+Math.round(marketInfo(state).notoriety);$('village-balance').textContent=money(state.community)+' in your chest';$('invested').textContent=money(state.communityInvested)+' contributed so far';$('project-name').textContent=project.name;$('project-progress').max=project.cost;$('project-progress').value=Math.min(project.cost,state.community);$('project-progress').setAttribute('aria-label',money(state.community)+' saved toward '+project.name+' costing '+money(project.cost));$('build-village').textContent='Contribute '+money(project.cost)+' & build';$('build-village').disabled=state.community<project.cost;$('project-needed').textContent=state.community<project.cost?money(project.cost-state.community)+' more needed from sales':'Your next village upgrade is ready!';$('village-coins').style.height=(15+Math.min(1,state.community/project.cost)*60)+'%';}
+function renderVillage(){const project=nextProject(state);$('community-rate').value=state.communityRate;$('community-rate-value').textContent=state.communityRate+'%';$('village-level').textContent='Village level '+state.villageLevel+' · Fame '+Math.round(marketInfo(state).notoriety);$('village-balance').textContent=money(state.community)+' in your chest';$('invested').textContent=money(state.communityInvested)+' contributed so far';$('project-name').textContent=project.name;$('project-progress').max=project.cost;$('project-progress').value=Math.min(project.cost,state.community);$('project-progress').setAttribute('aria-label',money(state.community)+' saved toward '+project.name+' costing '+money(project.cost));$('build-village').textContent='Contribute '+money(project.cost)+' & build';$('build-village').disabled=state.community<project.cost;$('project-needed').textContent=state.community<project.cost?money(project.cost-state.community)+' more needed from sales':'Your next village upgrade is ready!';$('village-coins').style.height=(15+Math.min(1,state.community/project.cost)*60)+'%';}
+$('community-rate').oninput=e=>{state=setCommunityRate(state,Number(e.target.value));changed();save();renderVillage();};
 $('build-village').onclick=()=>{const project=nextProject(state),next=developVillage(state);if(next===state)return;state=next;buildAt=performance.now();changed();save();renderVillage();$('village-announcement').textContent=project.name+' built! More people know your stand, and customer budgets have grown.';};
 function openPanel(tab='upgrades'){if(editing)finishEdit();stopInput();renderPanel();selectTab(tab);if(!$('panel').open)$('panel').showModal();syncPause();}
 $('menu').onclick=()=>openPanel('style');$('close').onclick=()=>$('panel').close();$('panel').addEventListener('close',()=>{syncPause();save();canvas.focus({preventScroll:true});});
@@ -126,14 +128,16 @@ function update(dt,now){
 function round(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();}
 function ellipse(x,y,rx,ry,color){ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();}
 function text(str,x,y,size=18,color='#173e35',weight=600){ctx.fillStyle=color;ctx.font=`${weight} ${size}px system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(str,x,y);}
-function person(p,isPlayer=false){const walking=isPlayer?player.moving:p.mode!=='waiting',bob=walking?Math.sin(p.phase)*2:Math.sin(time*2)*1,step=walking?Math.sin(p.phase)*6:0;ellipse(p.x,p.y+5,17,7,'#173e3523');round(p.x-11,p.y-14+step,8,18,4,'#314b4d');round(p.x+3,p.y-14-step,8,18,4,'#314b4d');round(p.x-17,p.y-46+bob,34,34,11,isPlayer?'#eff5e8':p.color);if(isPlayer)round(p.x-11,p.y-39+bob,22,25,3,'#dba644');ellipse(p.x,p.y-57+bob,14,15,'#dca47a');ellipse(p.x,p.y-66+bob,14,7,isPlayer?'#71503a':'#4f4940');if(isPlayer){ellipse(p.x,p.y-71+bob,18,5,'#f1cd65');round(p.x-11,p.y-82+bob,22,12,3,'#f1cd65');}if(p.worker){round(p.x-15,p.y-76+bob,30,9,4,p.color);text(p.name,p.x,p.y+22,10,p.color,800);}round(p.x-20,p.y-39+bob,7,21,4,'#dca47a');round(p.x+13,p.y-39+bob,7,21,4,'#dca47a');ellipse(p.x-5,p.y-57+bob,1.4,1.8,'#3f3c37');ellipse(p.x+5,p.y-57+bob,1.4,1.8,'#3f3c37');if(isPlayer){text('YOU',p.x,p.y+24,11,'#397457',800);const carried=state.drinks>0?'🥤'.repeat(Math.min(3,state.drinks)):(state.lemons||state.ice)?`${state.lemons?'🍋':''}${state.ice?'🧊':''}`:'';if(carried){round(p.x-30,p.y-109,60,25,8,'#fffbea');text(carried,p.x,p.y-97,17);}}else if(p.cup)text('🥤',p.x+23,p.y-29+bob,24);else if(!p.worker&&p.mode==='waiting'){round(p.x-20,p.y-90,40,7,4,'#c0cdb3');round(p.x-20,p.y-90,40*Math.max(0,p.patience/(p.maxPatience||65)),7,4,p.patience>20?'#62a17b':'#df9c63');text('🥤',p.x,p.y-112,24);}}
+function person(p,isPlayer=false){const walking=isPlayer?player.moving:p.mode!=='waiting',bob=walking?Math.sin(p.phase)*2:Math.sin(time*2)*1,step=walking?Math.sin(p.phase)*6:0;ellipse(p.x,p.y+5,17,7,'#173e3523');round(p.x-11,p.y-14+step,8,18,4,'#314b4d');round(p.x+3,p.y-14-step,8,18,4,'#314b4d');round(p.x-17,p.y-46+bob,34,34,11,isPlayer?'#eff5e8':p.color);if(isPlayer){round(p.x-11,p.y-39+bob,22,25,3,'#dba644');round(p.x-6,p.y-28+bob,12,8,2,'#bd8e38');round(p.x-10,p.y-37+bob,3,21,1,'#f7db83');}ellipse(p.x,p.y-57+bob,14,15,'#dca47a');ellipse(p.x,p.y-66+bob,14,7,isPlayer?'#71503a':'#4f4940');if(isPlayer){ellipse(p.x,p.y-71+bob,18,5,'#f1cd65');round(p.x-11,p.y-82+bob,22,12,3,'#f1cd65');}if(p.worker){round(p.x-15,p.y-76+bob,30,9,4,p.color);text(p.name,p.x,p.y+22,10,p.color,800);}round(p.x-20,p.y-39+bob,7,21,4,'#dca47a');round(p.x+13,p.y-39+bob,7,21,4,'#dca47a');ellipse(p.x-5,p.y-57+bob,1.4,1.8,'#3f3c37');ellipse(p.x+5,p.y-57+bob,1.4,1.8,'#3f3c37');if(isPlayer){text('YOU',p.x,p.y+24,11,'#397457',800);const carried=state.drinks>0?'🥤'.repeat(Math.min(3,state.drinks)):(state.lemons||state.ice)?`${state.lemons?'🍋':''}${state.ice?'🧊':''}`:'';if(carried){round(p.x-30,p.y-109,60,25,8,'#fffbea');text(carried,p.x,p.y-97,17);}}else if(p.cup)text('🥤',p.x+23,p.y-29+bob,24);else if(!p.worker&&p.mode==='waiting'){round(p.x-20,p.y-90,40,7,4,'#c0cdb3');round(p.x-20,p.y-90,40*Math.max(0,p.patience/(p.maxPatience||65)),7,4,p.patience>20?'#62a17b':'#df9c63');text('🥤',p.x,p.y-112,24);}}
 function station(s){const near=activeStation===s.id;ellipse(s.x,s.y+5,44,27,'#173e3510');ellipse(s.x,s.y,42,27,near?'#fff9df':'#fff9df99');ctx.strokeStyle=s.color;ctx.lineWidth=near?4:2;ctx.setLineDash([7,5]);ctx.beginPath();ctx.ellipse(s.x,s.y,42,27,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);text(s.label,s.x,s.y,12,s.color,800);if(near&&progress>0){ctx.strokeStyle='#fffdf3';ctx.lineWidth=6;ctx.beginPath();ctx.arc(s.x,s.y-10,36,-Math.PI/2,-Math.PI/2+Math.PI*2*progress);ctx.stroke();}}
 function draw(){
  ctx.clearRect(0,0,W,H);ctx.fillStyle=LOCATIONS[state.location].color;ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(ox,oy);ctx.scale(scale,scale);
+ // Layered location scenery stays lightweight and contains no external textures.
+ drawSurroundings(ctx,state.location,time);
  // Garden details, a warm tiled courtyard, and the customer path.
  for(let i=0;i<14;i++){ellipse(18+(i*131)%570,80+(i*173)%680,3,7,'#b8cda4');}
- round(24,220,552,566,36,'#d0dcb5');round(34,230,532,546,28,'#ece4cd');
- ctx.strokeStyle='#d8d1ba';ctx.lineWidth=1;for(let y=250;y<770;y+=52){ctx.beginPath();ctx.moveTo(45,y);ctx.lineTo(555,y);ctx.stroke();}for(let x=64;x<560;x+=58){ctx.beginPath();ctx.moveTo(x,240);ctx.lineTo(x,765);ctx.stroke();}
+ round(24,220,552,566,36,'#d0dcb5');round(34,230,532,546,28,THEMES[state.location].floor);
+ ctx.strokeStyle=THEMES[state.location].grout;ctx.lineWidth=1;for(let y=250;y<770;y+=52){ctx.beginPath();ctx.moveTo(45,y);ctx.lineTo(555,y);ctx.stroke();}for(let x=64;x<560;x+=58){ctx.beginPath();ctx.moveTo(x,240);ctx.lineTo(x,765);ctx.stroke();}
  const servePad=stations.find(s=>s.id==='serve');const pathX=servePad.x>300?0:servePad.x+35;round(pathX,servePad.y-60,servePad.x>300?servePad.x+20:625-pathX,76,20,'#d4dcc2');
  // Title and garden backdrop.
  const title=state.name.length>25?state.name.slice(0,24)+'…':state.name;text(title,300,65,30,'#284c3d',750);text('YOUR VILLAGE · '+state.villageLevel+' PROJECTS FUNDED',300,102,12,'#6d835e',700);drawVillage(ctx,150,109,300,100,state.villageLevel,(performance.now()-buildAt)/1000);
@@ -141,26 +145,13 @@ function draw(){
  for(const s of stations){
  const base=STATIONS.find(b=>b.id===s.id);ctx.save();
  ctx.translate(s.x,s.y);if(editing)ctx.rotate(Math.sin(performance.now()/115+STATIONS.indexOf(base))*0.025);ctx.translate(-base.x,-base.y);
- if(s.id==='lemons'){
- round(46,171,88,62,10,'#ac8551');round(42,163,96,43,9,'#edc65b');text('🍋 🍋',90,184,25);text('$0.25',90,218,14,'#fff9db');
- }
- else if(s.id==='ice'){
- round(466,171,88,62,10,'#6c9fae');round(462,163,96,43,9,'#b5e1e6');text('🧊 🧊',510,184,25);text('$0.25',510,218,14,'#effcff');
- }
- else if(s.id==='mix'){
- round(44,460,92,58,9,'#ae8258');round(38,449,104,40,9,'#dbb587');text('🍹',90+Math.sin(time*9)*(activeStation==='mix'&&progress>0?3:0),464,34);text('LEMON + ICE',90,508,10,'#fff9df');
- }
- else if(s.id==='cash'){
- round(466,460,88,58,9,'#709563');round(460,449,100,40,9,'#a4bd7e');text(state.pendingCash>0?'💵':'💰',510,466,30);if(state.pendingCash>0){round(470,419,80,24,8,'#fff9df');text(money(state.pendingCash),510,431,14,'#4a8052');}
- }
- else if(s.id==='serve'){
- round(222,273,156,61,10,'#ac7b4d');round(214,266,172,32,8,state.color);for(let i=0;i<6;i++)if(i%2===0)round(214+i*28,266,28,30,2,'#fff5d4');round(229,298,142,35,5,'#f5df99');text('LEMONADE',300,313,15);text('🥤',253,253,29);text(money(state.price),345,253,16);
- }
- else if(s.id==='upgrade'){
- round(242,650,116,38,12,'#b39cc6');text('⬆ UPGRADES',300,669,14,'#fffdf6');
- }
+ if(s.id==='lemons'||s.id==='ice'){drawSupplyBin(ctx,base.x,base.y,s.id);}
+ else if(s.id==='mix'){drawMixer(ctx,base.x,base.y,time,activeStation==='mix'&&progress>0,state.upgrades.includes('blender'));}
+ else if(s.id==='cash'){drawRegister(ctx,base.x,base.y,state.pendingCash);}
+ else if(s.id==='serve'){drawStorefront(ctx,state.location,base.x,base.y,state.color,state.price,time,state.upgrades.includes('stand'));}
+ else if(s.id==='upgrade'){round(240,649,120,42,10,'#9075ab');round(244,647,112,34,9,'#b39cc6');text('⬆ UPGRADES',300,666,14,'#fffdf6');}
  station({...s,x:base.x,y:base.y});
- if(editing){ctx.strokeStyle=placementAllowed(stations,s.id,s)?'#a37db6':'#c85d4c';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.strokeRect(base.x-58,base.y-124,116,157);ctx.setLineDash([]);text('✥',base.x+49,base.y-115,20,'#8e66a2');}
+ if(editing){ctx.strokeStyle=placementAllowed(stations,s.id,s)?'#a37db6':'#c85d4c';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.strokeRect(base.x-(s.id==='serve'?104:58),base.y-(s.id==='serve'?180:150),s.id==='serve'?208:116,s.id==='serve'?213:183);ctx.setLineDash([]);text('✥',base.x+49,base.y-115,20,'#8e66a2');}
  ctx.restore();
  }
  // Characters are depth-sorted for a coherent little world.

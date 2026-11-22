@@ -26,12 +26,12 @@ export const UPGRADES = {
  server:{name:'Hire a server',category:'team',icon:'🧑‍💼',cost:65,description:'Serves waiting customers. One-time hire.'},
  cashier:{name:'Hire a cashier',category:'team',icon:'💵',cost:40,description:'Collects your earnings. One-time hire.'}
 };
-export function fresh(){return {version:3,cash:40,price:2,name:'My sunny stand',color:'#f3c64e',lemons:0,ice:0,drinks:0,pendingCash:0,upgrades:[],served:0,totalRevenue:0,totalExpenses:0,community:0,communityInvested:0,villageLevel:0,location:'backyard',day:1,dayElapsed:0,rentPaid:0,history:[],layout:{}};}
+export function fresh(){return {version:3,cash:40,price:2,name:'My sunny stand',color:'#f3c64e',lemons:0,ice:0,drinks:0,pendingCash:0,upgrades:[],served:0,totalRevenue:0,totalExpenses:0,community:0,communityInvested:0,communityRate:5,operatingProfit:0,profitPeak:0,villageLevel:0,location:'backyard',day:1,dayElapsed:0,rentPaid:0,history:[],layout:{}};}
 export function restoreWalk(raw,legacy){
   try{
     if(raw){const s=JSON.parse(raw);const numbers=['cash','price','lemons','ice','drinks','pendingCash','served','totalRevenue','totalExpenses','community'];
       if(s.version!==3||!numbers.every(k=>Number.isFinite(s[k])&&s[k]>=0)||s.price<.5||s.price>5||!['lemons','ice','drinks','served'].every(k=>Number.isInteger(s[k]))||!Array.isArray(s.upgrades)||s.upgrades.some(k=>!UPGRADES[k])||typeof s.name!=='string'||!/^#[0-9a-f]{6}$/i.test(s.color)||!Array.isArray(s.history))return fresh();
-      return {...s,location:LOCATIONS[s.location]?s.location:'backyard',day:Number.isInteger(s.day)&&s.day>0?s.day:1,dayElapsed:Number.isFinite(s.dayElapsed)&&s.dayElapsed>=0&&s.dayElapsed<GAME_DAY_SECONDS?s.dayElapsed:0,rentPaid:Number.isFinite(s.rentPaid)&&s.rentPaid>=0?s.rentPaid:0,communityInvested:Number.isFinite(s.communityInvested)&&s.communityInvested>=0?s.communityInvested:0,villageLevel:Number.isInteger(s.villageLevel)&&s.villageLevel>=0?Math.min(10000,s.villageLevel):0,layout:normalizeLayout(s.layout),history:s.history.filter(r=>r&&Number.isFinite(r.revenue)&&Number.isFinite(r.sold)&&Number.isFinite(r.day)).slice(-50)};
+      return {...s,communityRate:Number.isFinite(s.communityRate)?Math.max(0,Math.min(100,s.communityRate)):5,operatingProfit:Number.isFinite(s.operatingProfit)?s.operatingProfit:0,profitPeak:Number.isFinite(s.profitPeak)&&s.profitPeak>=0?s.profitPeak:0,location:LOCATIONS[s.location]?s.location:'backyard',day:Number.isInteger(s.day)&&s.day>0?s.day:1,dayElapsed:Number.isFinite(s.dayElapsed)&&s.dayElapsed>=0&&s.dayElapsed<GAME_DAY_SECONDS?s.dayElapsed:0,rentPaid:Number.isFinite(s.rentPaid)&&s.rentPaid>=0?s.rentPaid:0,communityInvested:Number.isFinite(s.communityInvested)&&s.communityInvested>=0?s.communityInvested:0,villageLevel:Number.isInteger(s.villageLevel)&&s.villageLevel>=0?Math.min(10000,s.villageLevel):0,layout:normalizeLayout(s.layout),history:s.history.filter(r=>r&&Number.isFinite(r.revenue)&&Number.isFinite(r.sold)&&Number.isFinite(r.day)).slice(-50)};
     }
     if(legacy){const old=JSON.parse(legacy);if(old.version===1&&Number.isFinite(old.cash)&&old.cash>=0){const s=fresh();for(const k of ['cash','price','name','color','totalRevenue','totalExpenses','community'])if(typeof old[k]===typeof s[k])s[k]=old[k];s.price=Math.max(.5,Math.min(5,s.price));s.color=/^#[0-9a-f]{6}$/i.test(s.color)?s.color:'#f3c64e';s.upgrades=(old.upgrades||[]).filter(k=>UPGRADES[k]);const stock=Math.max(0,Math.floor(Number(old.inventory)||0));s.lemons=stock;s.ice=stock;return s;}}
   }catch{/* A missing or damaged save starts a new adventure. */}
@@ -51,8 +51,11 @@ export function transact(s,id,waiting=false){
   if(id==='lemons'||id==='ice')return {...s,[id]:s[id]+1,cash:cents(s.cash-.25),totalExpenses:cents(s.totalExpenses+.25)};
   if(id==='mix')return {...s,lemons:s.lemons-1,ice:s.ice-1,drinks:s.drinks+1};
   if(id==='serve'){
-    const contribution=cents(s.price*.05);const sold=s.served+1;
-    return {...s,drinks:s.drinks-1,served:sold,totalRevenue:cents(s.totalRevenue+s.price),community:cents(s.community+contribution),pendingCash:cents(s.pendingCash+s.price-contribution),history:[...s.history,{day:sold,sold:1,revenue:s.price,contribution}].slice(-50)};
+    const operatingProfit=cents((s.operatingProfit||0)+s.price-.5);
+    const profitPeak=Math.max(s.profitPeak||0,operatingProfit,0);
+    const eligibleProfit=Math.max(0,operatingProfit-(s.profitPeak||0));
+    const contribution=cents(eligibleProfit*(s.communityRate??5)/100);const sold=s.served+1;
+    return {...s,operatingProfit,profitPeak,drinks:s.drinks-1,served:sold,totalRevenue:cents(s.totalRevenue+s.price),community:cents(s.community+contribution),pendingCash:cents(s.pendingCash+s.price-contribution),history:[...s.history,{day:sold,sold:1,revenue:s.price,contribution}].slice(-50)};
   }
   if(id==='cash')return {...s,cash:cents(s.cash+s.pendingCash),pendingCash:0};
   return s;
@@ -105,10 +108,12 @@ export function marketInfo(s,location=s.location||'backyard'){
  return {place,notoriety,traffic:place.traffic*place.visibility*(1+notoriety*.008),willingness:2.5+place.premium+notoriety*.035};
 }
 export function setPrice(s,value){if(!Number.isFinite(value))return s;return {...s,price:cents(Math.max(.5,Math.min(5,value)))};}
-export function moveLocation(s,id){const place=LOCATIONS[id];if(!place||id===(s.location||'backyard')||s.cash<place.rent)return s;return {...s,location:id,dayElapsed:0,cash:cents(s.cash-place.rent),totalExpenses:cents(s.totalExpenses+place.rent),rentPaid:cents((s.rentPaid||0)+place.rent)};}
+export function moveLocation(s,id){const place=LOCATIONS[id];if(!place||id===(s.location||'backyard')||s.cash<place.rent)return s;return {...s,location:id,dayElapsed:0,operatingProfit:cents((s.operatingProfit||0)-place.rent),cash:cents(s.cash-place.rent),totalExpenses:cents(s.totalExpenses+place.rent),rentPaid:cents((s.rentPaid||0)+place.rent)};}
 export function advanceClock(s,seconds){
  if(!Number.isFinite(seconds)||seconds<=0)return s;let elapsed=(s.dayElapsed||0)+seconds,next={...s};
- while(elapsed>=GAME_DAY_SECONDS){elapsed-=GAME_DAY_SECONDS;next.day=(next.day||1)+1;const rent=(LOCATIONS[next.location]||LOCATIONS.backyard).rent;if(next.cash<rent){next.location='backyard';}else{next.cash=cents(next.cash-rent);next.totalExpenses=cents(next.totalExpenses+rent);next.rentPaid=cents((next.rentPaid||0)+rent);}}
+ while(elapsed>=GAME_DAY_SECONDS){elapsed-=GAME_DAY_SECONDS;next.day=(next.day||1)+1;const rent=(LOCATIONS[next.location]||LOCATIONS.backyard).rent;if(next.cash<rent){next.location='backyard';}else{next.operatingProfit=cents((next.operatingProfit||0)-rent);next.cash=cents(next.cash-rent);next.totalExpenses=cents(next.totalExpenses+rent);next.rentPaid=cents((next.rentPaid||0)+rent);}}
  return {...next,dayElapsed:elapsed};
 }
 export function willingToPay(state,customer){return state.price<=(customer.maxPrice??Infinity);}
+
+export function setCommunityRate(s,percent){if(!Number.isFinite(percent))return s;return {...s,communityRate:Math.max(0,Math.min(100,Math.round(percent)))};}
