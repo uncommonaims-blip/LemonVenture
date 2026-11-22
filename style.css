@@ -17,3 +17,6 @@ body>#price-controls{position:static;transform:none;align-self:center;margin:4px
 .shop-filters{grid-template-columns:repeat(5,minmax(0,1fr))}
 
 #farm-tools{position:absolute;bottom:45px;left:50%;transform:translateX(-50%)}.village-actions{display:flex;gap:6px;margin:7px 0}.village-actions button{flex:1;font-size:11px;padding:5px;min-height:36px}#tab-farm .shop-filters{grid-template-columns:repeat(3,minmax(0,1fr))}#farm-stats,#farm-delivery,#farm-funds{font-size:11px;margin:6px 0}#farm-notice{font-size:10px}#farm-return{min-height:32px;font-size:11px}@media(max-height:700px){#tab-village #village-preview{height:75px}#tab-village .village-actions{margin:3px 0}.village-actions button{min-height:32px}}
+@media(max-width:480px){header{gap:3px;padding-left:6px;padding-right:6px}header .brand{font-size:14px;white-space:nowrap}header button{min-width:32px;width:34px;padding:4px!important;flex-shrink:0}header #shop{font-size:0}header #shop:after{content:'↑';font-size:18px}}
+
+#farm-tools{position:static;transform:none;margin:4px auto 0;flex-shrink:0}#farm-tools button{min-height:38px}
