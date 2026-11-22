@@ -55,3 +55,11 @@ Four animated employees can be hired: a supply runner, lemonade maker, server an
 Tap the community chest in the HUD or the Village tab to see the settlement. Every sale adds 5% to unspent community funds. The Contribute & build button spends only the displayed project cost and adds a permanent village feature. Early projects cost $0.50, $1, $2, $3, $5, $8, $12 and $18. Features include a second home, road, trees, garden, another home, well, school and market. Later contributions keep expanding homes and greenery. Each build plays a growth/confetti animation. The village remains visible above the stand. Unspent funds, invested funds and village level all persist.
 
 Tests include upgrade effects, a full autonomous employee economy, layout-aware workers, legacy migration, and conservation of community funds.
+
+## v0.6: town, rent, reputation and live pricing
+
+Open the town map from the map button or Town tab. Select a location marker to compare terms, then explicitly move there. Locations are Backyard lane ($0/day), Riverside park ($3), School corner ($5), Market square ($9), and Beach boardwalk ($14). Visibility and baseline traffic increase with rent. Moving pays the first rent immediately and starts a new 120-second active-play timer; the next rent is charged at each new game day. Menus, wobble mode, pause, and hidden tabs stop that clock. There are no offline rent charges. If cash cannot cover rent, the game returns to the free backyard without debt; pending customer earnings remain to be collected. Moving forfeits unused prepaid time.
+
+Invested community funds and completed village projects raise notoriety. Higher notoriety increases arrivals and customer willingness to pay. Locations also influence budgets and exposure. Customers have individual price limits and leave with a visible message if the current price is too high; their drink is not consumed. The server follows the same budget rule.
+
+The play screen has minus/plus price buttons in $0.25 steps from $0.50 to $5, plus a typical-budget and fame indicator. Stand settings retain the price slider. Location, paid rent, day timer, reputation source data, price, and all prior business progress persist.

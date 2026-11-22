@@ -1,4 +1,4 @@
-import {capacity,canAct,transact,effects} from './stand.js?v=5';
+import {capacity,canAct,transact,effects,willingToPay} from './stand.js?v=6';
 const JOBS={runner:{name:'Runner',color:'#71a17a'},chef:{name:'Maker',color:'#bb8bba'},server:{name:'Server',color:'#6b9fb8'},cashier:{name:'Cashier',color:'#d79e61'}};
 export function syncWorkers(state,workers){return Object.entries(JOBS).filter(([id])=>state.upgrades.includes(id)).map(([id,job],i)=>workers.find(w=>w.id===id)||{id,...job,x:210+i*48,y:620,phase:0,progress:0,target:null,mode:'waiting'});}
 export function stepWorkers(state,workers,stations,customers,dt){
@@ -7,7 +7,7 @@ export function stepWorkers(state,workers,stations,customers,dt){
   const waiting=customers.find(c=>c.mode!=='leaving');let target=null;
   if(w.id==='runner'&&s.cash>=.25){if(s.lemons<capacity(s,'lemons')&&(s.lemons<=s.ice||s.ice>=capacity(s,'ice')))target='lemons';else if(s.ice<capacity(s,'ice'))target='ice';}
   if(w.id==='chef'&&canAct(s,'mix'))target='mix';
-  if(w.id==='server'&&canAct(s,'serve',waiting?.mode==='waiting'))target='serve';
+  if(w.id==='server'&&waiting&&willingToPay(s,waiting)&&canAct(s,'serve',waiting.mode==='waiting'))target='serve';
   if(w.id==='cashier'&&canAct(s,'cash'))target='cash';
   if(target!==w.target){w.progress=0;w.target=target;}w.phase+=dt*9;
   if(!target){w.mode='waiting';continue;}

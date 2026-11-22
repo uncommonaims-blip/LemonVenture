@@ -26,12 +26,12 @@ export const UPGRADES = {
  server:{name:'Hire a server',category:'team',icon:'🧑‍💼',cost:65,description:'Serves waiting customers. One-time hire.'},
  cashier:{name:'Hire a cashier',category:'team',icon:'💵',cost:40,description:'Collects your earnings. One-time hire.'}
 };
-export function fresh(){return {version:3,cash:40,price:2,name:'My sunny stand',color:'#f3c64e',lemons:0,ice:0,drinks:0,pendingCash:0,upgrades:[],served:0,totalRevenue:0,totalExpenses:0,community:0,communityInvested:0,villageLevel:0,history:[],layout:{}};}
+export function fresh(){return {version:3,cash:40,price:2,name:'My sunny stand',color:'#f3c64e',lemons:0,ice:0,drinks:0,pendingCash:0,upgrades:[],served:0,totalRevenue:0,totalExpenses:0,community:0,communityInvested:0,villageLevel:0,location:'backyard',day:1,dayElapsed:0,rentPaid:0,history:[],layout:{}};}
 export function restoreWalk(raw,legacy){
   try{
     if(raw){const s=JSON.parse(raw);const numbers=['cash','price','lemons','ice','drinks','pendingCash','served','totalRevenue','totalExpenses','community'];
       if(s.version!==3||!numbers.every(k=>Number.isFinite(s[k])&&s[k]>=0)||s.price<.5||s.price>5||!['lemons','ice','drinks','served'].every(k=>Number.isInteger(s[k]))||!Array.isArray(s.upgrades)||s.upgrades.some(k=>!UPGRADES[k])||typeof s.name!=='string'||!/^#[0-9a-f]{6}$/i.test(s.color)||!Array.isArray(s.history))return fresh();
-      return {...s,communityInvested:Number.isFinite(s.communityInvested)&&s.communityInvested>=0?s.communityInvested:0,villageLevel:Number.isInteger(s.villageLevel)&&s.villageLevel>=0?Math.min(10000,s.villageLevel):0,layout:normalizeLayout(s.layout),history:s.history.filter(r=>r&&Number.isFinite(r.revenue)&&Number.isFinite(r.sold)&&Number.isFinite(r.day)).slice(-50)};
+      return {...s,location:LOCATIONS[s.location]?s.location:'backyard',day:Number.isInteger(s.day)&&s.day>0?s.day:1,dayElapsed:Number.isFinite(s.dayElapsed)&&s.dayElapsed>=0&&s.dayElapsed<GAME_DAY_SECONDS?s.dayElapsed:0,rentPaid:Number.isFinite(s.rentPaid)&&s.rentPaid>=0?s.rentPaid:0,communityInvested:Number.isFinite(s.communityInvested)&&s.communityInvested>=0?s.communityInvested:0,villageLevel:Number.isInteger(s.villageLevel)&&s.villageLevel>=0?Math.min(10000,s.villageLevel):0,layout:normalizeLayout(s.layout),history:s.history.filter(r=>r&&Number.isFinite(r.revenue)&&Number.isFinite(r.sold)&&Number.isFinite(r.day)).slice(-50)};
     }
     if(legacy){const old=JSON.parse(legacy);if(old.version===1&&Number.isFinite(old.cash)&&old.cash>=0){const s=fresh();for(const k of ['cash','price','name','color','totalRevenue','totalExpenses','community'])if(typeof old[k]===typeof s[k])s[k]=old[k];s.price=Math.max(.5,Math.min(5,s.price));s.color=/^#[0-9a-f]{6}$/i.test(s.color)?s.color:'#f3c64e';s.upgrades=(old.upgrades||[]).filter(k=>UPGRADES[k]);const stock=Math.max(0,Math.floor(Number(old.inventory)||0));s.lemons=stock;s.ice=stock;return s;}}
   }catch{/* A missing or damaged save starts a new adventure. */}
@@ -84,9 +84,31 @@ export function effects(s){const has=id=>s.upgrades.includes(id);return {
  speed:MOVE_SPEED*(has('shoes')?1.2:1),
  mixSeconds:(has('stand')?.65:1.3)*(has('blender')?.6:1),
  serveSeconds:.75*(has('service')?.55:1),
- spawnSeconds:(has('sign')?4:6)*(has('flyers')?.75:1)*(has('banner')?.7:1)*(1+(s.price-2)*.25),
+ spawnSeconds:(has('sign')?4:6)*(has('flyers')?.75:1)*(has('banner')?.7:1)*(1+(s.price-2)*.25)/marketInfo(s).traffic,
  patience:65+(has('benches')?35:0)
 };}
 const PROJECTS=[['A second home',.5],['A village road',1],['Shade trees',2],['A community garden',3],['Another family home',5],['A clean-water well',8],['A village school',12],['A market square',18]];
 export function nextProject(s){const n=s.villageLevel||0;return n<PROJECTS.length?{name:PROJECTS[n][0],cost:PROJECTS[n][1]}:{name:n%2?'More trees and gardens':'A new family home',cost:25+(n-8)*5};}
 export function developVillage(s){const p=nextProject(s);if(s.community<p.cost)return s;return {...s,community:cents(s.community-p.cost),communityInvested:cents((s.communityInvested||0)+p.cost),villageLevel:(s.villageLevel||0)+1};}
+
+export const GAME_DAY_SECONDS=120;
+export const LOCATIONS={
+ backyard:{name:'Backyard lane',icon:'🏠',rent:0,traffic:1,visibility:1,premium:0,color:'#dce9ce',description:'A free, quiet place to learn the ropes.'},
+ park:{name:'Riverside park',icon:'🌳',rent:3,traffic:1.35,visibility:1.1,premium:.1,color:'#d0e5cf',description:'Walkers and families, with a modest daily rent.'},
+ school:{name:'School corner',icon:'🏫',rent:5,traffic:1.65,visibility:1.2,premium:.2,color:'#e8e0ca',description:'A busy neighborhood corner with good visibility.'},
+ market:{name:'Market square',icon:'🏪',rent:9,traffic:2.1,visibility:1.35,premium:.35,color:'#e6d9c2',description:'A central spot where shoppers can easily find you.'},
+ boardwalk:{name:'Beach boardwalk',icon:'🏖️',rent:14,traffic:2.6,visibility:1.5,premium:.6,color:'#d7e8e8',description:'Premium visibility, tourist traffic and the highest rent.'}
+};
+export function marketInfo(s,location=s.location||'backyard'){
+ const place=LOCATIONS[location]||LOCATIONS.backyard;
+ const notoriety=Math.min(100,(s.villageLevel||0)*5+Math.sqrt(s.communityInvested||0)*3);
+ return {place,notoriety,traffic:place.traffic*place.visibility*(1+notoriety*.008),willingness:2.5+place.premium+notoriety*.035};
+}
+export function setPrice(s,value){if(!Number.isFinite(value))return s;return {...s,price:cents(Math.max(.5,Math.min(5,value)))};}
+export function moveLocation(s,id){const place=LOCATIONS[id];if(!place||id===(s.location||'backyard')||s.cash<place.rent)return s;return {...s,location:id,dayElapsed:0,cash:cents(s.cash-place.rent),totalExpenses:cents(s.totalExpenses+place.rent),rentPaid:cents((s.rentPaid||0)+place.rent)};}
+export function advanceClock(s,seconds){
+ if(!Number.isFinite(seconds)||seconds<=0)return s;let elapsed=(s.dayElapsed||0)+seconds,next={...s};
+ while(elapsed>=GAME_DAY_SECONDS){elapsed-=GAME_DAY_SECONDS;next.day=(next.day||1)+1;const rent=(LOCATIONS[next.location]||LOCATIONS.backyard).rent;if(next.cash<rent){next.location='backyard';}else{next.cash=cents(next.cash-rent);next.totalExpenses=cents(next.totalExpenses+rent);next.rentPaid=cents((next.rentPaid||0)+rent);}}
+ return {...next,dayElapsed:elapsed};
+}
+export function willingToPay(state,customer){return state.price<=(customer.maxPrice??Infinity);}
