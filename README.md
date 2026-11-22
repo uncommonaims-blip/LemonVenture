@@ -72,3 +72,7 @@ Each location now has its own storefront architecture, colors and surroundings: 
 
 ### v0.8: Lemonade empire
 42 shop choices: 20 new ten-level investments with escalating prices, four additional staff hires, and four visible courtyard decorations. Tiered purchases retain level and cost across saves. Bulk contracts reduce ingredient prices, tips add sales income, premium recipes raise budgets, and staff training accelerates real work. Cup pricing now supports $0.50–$20 for premium brands. Starter upgrades and existing saves remain intact.
+
+### v0.9: The massif village and supply road
+Use the tree button to switch between stand and village. The same floating stick controls movement. Tree rings water or harvest; the shed ring dispatches lemons. Village works offers an accessible harvest action plus grove, road and transport projects. Begin with two trees, expand to twelve, buy irrigation and gardeners, and increase cart capacity. Upgraded carts depart automatically. Harvested lemons delivered to the stand replace paid lemons, including their savings in operating profit.
+Road projects use the community chest: rockfalls, drainage, steep sections, a ravine bridge and surfacing. Delivery durations are 90 → 72 → 58 → 45 → 32 → 20 seconds; improvements apply to new shipments. In-flight loads retain their original ETA. Stand employees keep working while you visit the village. Growth, rent and deliveries pause in menus or while away; existing saves migrate without losing balances.

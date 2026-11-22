@@ -1,3 +1,4 @@
+import {newFarm,restoreFarm} from './orchard.js?v=9';
 export const MOVE_SPEED = 190 * 1.3;
 export const MOVE_HOLD_MS = 80;
 export const EDIT_HOLD_MS = 650;
@@ -56,12 +57,12 @@ export function upgradeLevel(s,id){return UPGRADES[id]?.maxLevel?Math.max(0,Math
 export function upgradeCost(s,id){const u=UPGRADES[id];return u?Math.round(u.cost*1.85**upgradeLevel(s,id)):Infinity;}
 export function upgradeAvailable(s,id){const u=UPGRADES[id];return Boolean(u&&upgradeLevel(s,id)<(u.maxLevel||1)&&(!u.requires||s.upgrades.includes(u.requires)));}
 export function ingredientCost(s){return cents(.25*(1-.03*upgradeLevel(s,'bulk')));}
-export function fresh(){return {version:3,upgradeLevels:{},cash:40,price:2,name:'My sunny stand',color:'#f3c64e',lemons:0,ice:0,drinks:0,pendingCash:0,upgrades:[],served:0,totalRevenue:0,totalExpenses:0,community:0,communityInvested:0,communityRate:5,operatingProfit:0,profitPeak:0,villageLevel:0,location:'backyard',day:1,dayElapsed:0,rentPaid:0,history:[],layout:{}};}
+export function fresh(){return {version:3,farmLemons:0,farmDrinks:0,farm:newFarm(),upgradeLevels:{},cash:40,price:2,name:'My sunny stand',color:'#f3c64e',lemons:0,ice:0,drinks:0,pendingCash:0,upgrades:[],served:0,totalRevenue:0,totalExpenses:0,community:0,communityInvested:0,communityRate:5,operatingProfit:0,profitPeak:0,villageLevel:0,location:'backyard',day:1,dayElapsed:0,rentPaid:0,history:[],layout:{}};}
 export function restoreWalk(raw,legacy){
   try{
     if(raw){const s=JSON.parse(raw);const numbers=['cash','price','lemons','ice','drinks','pendingCash','served','totalRevenue','totalExpenses','community'];
       if(s.version!==3||!numbers.every(k=>Number.isFinite(s[k])&&s[k]>=0)||s.price<.5||s.price>20||!['lemons','ice','drinks','served'].every(k=>Number.isInteger(s[k]))||!Array.isArray(s.upgrades)||s.upgrades.some(k=>!UPGRADES[k])||typeof s.name!=='string'||!/^#[0-9a-f]{6}$/i.test(s.color)||!Array.isArray(s.history))return fresh();
-      return {...s,upgradeLevels:Object.fromEntries(Object.keys(UPGRADES).filter(id=>UPGRADES[id].maxLevel&&s.upgradeLevels?.[id]>0).map(id=>[id,Number.isFinite(s.upgradeLevels?.[id])?Math.max(0,Math.min(10,Math.floor(s.upgradeLevels[id]))):0])),communityRate:Number.isFinite(s.communityRate)?Math.max(0,Math.min(100,s.communityRate)):5,operatingProfit:Number.isFinite(s.operatingProfit)?s.operatingProfit:0,profitPeak:Number.isFinite(s.profitPeak)&&s.profitPeak>=0?s.profitPeak:0,location:LOCATIONS[s.location]?s.location:'backyard',day:Number.isInteger(s.day)&&s.day>0?s.day:1,dayElapsed:Number.isFinite(s.dayElapsed)&&s.dayElapsed>=0&&s.dayElapsed<GAME_DAY_SECONDS?s.dayElapsed:0,rentPaid:Number.isFinite(s.rentPaid)&&s.rentPaid>=0?s.rentPaid:0,communityInvested:Number.isFinite(s.communityInvested)&&s.communityInvested>=0?s.communityInvested:0,villageLevel:Number.isInteger(s.villageLevel)&&s.villageLevel>=0?Math.min(10000,s.villageLevel):0,layout:normalizeLayout(s.layout),history:s.history.filter(r=>r&&Number.isFinite(r.revenue)&&Number.isFinite(r.sold)&&Number.isFinite(r.day)).slice(-50)};
+      return {...s,farmLemons:Number.isInteger(s.farmLemons)?Math.max(0,Math.min(s.lemons,s.farmLemons)):0,farmDrinks:Number.isInteger(s.farmDrinks)?Math.max(0,Math.min(s.drinks,s.farmDrinks)):0,farm:restoreFarm(s.farm),upgradeLevels:Object.fromEntries(Object.keys(UPGRADES).filter(id=>UPGRADES[id].maxLevel&&s.upgradeLevels?.[id]>0).map(id=>[id,Number.isFinite(s.upgradeLevels?.[id])?Math.max(0,Math.min(10,Math.floor(s.upgradeLevels[id]))):0])),communityRate:Number.isFinite(s.communityRate)?Math.max(0,Math.min(100,s.communityRate)):5,operatingProfit:Number.isFinite(s.operatingProfit)?s.operatingProfit:0,profitPeak:Number.isFinite(s.profitPeak)&&s.profitPeak>=0?s.profitPeak:0,location:LOCATIONS[s.location]?s.location:'backyard',day:Number.isInteger(s.day)&&s.day>0?s.day:1,dayElapsed:Number.isFinite(s.dayElapsed)&&s.dayElapsed>=0&&s.dayElapsed<GAME_DAY_SECONDS?s.dayElapsed:0,rentPaid:Number.isFinite(s.rentPaid)&&s.rentPaid>=0?s.rentPaid:0,communityInvested:Number.isFinite(s.communityInvested)&&s.communityInvested>=0?s.communityInvested:0,villageLevel:Number.isInteger(s.villageLevel)&&s.villageLevel>=0?Math.min(10000,s.villageLevel):0,layout:normalizeLayout(s.layout),history:s.history.filter(r=>r&&Number.isFinite(r.revenue)&&Number.isFinite(r.sold)&&Number.isFinite(r.day)).slice(-50)};
     }
     if(legacy){const old=JSON.parse(legacy);if(old.version===1&&Number.isFinite(old.cash)&&old.cash>=0){const s=fresh();for(const k of ['cash','price','name','color','totalRevenue','totalExpenses','community'])if(typeof old[k]===typeof s[k])s[k]=old[k];s.price=Math.max(.5,Math.min(20,s.price));s.color=/^#[0-9a-f]{6}$/i.test(s.color)?s.color:'#f3c64e';s.upgrades=(old.upgrades||[]).filter(k=>UPGRADES[k]);const stock=Math.max(0,Math.floor(Number(old.inventory)||0));s.lemons=stock;s.ice=stock;return s;}}
   }catch{/* A missing or damaged save starts a new adventure. */}
@@ -70,7 +71,7 @@ export function restoreWalk(raw,legacy){
 const cents=n=>Math.round(n*100)/100;
 export function capacity(s,kind){return (s.upgrades.includes(kind==='drinks'?'stand':'cooler')?5:3)+(kind!=='drinks'&&s.upgrades.includes('crates')?4:0)+upgradeLevel(s,kind==='drinks'?'trays':'warehouse')*(kind==='drinks'?4:6);}
 export function canAct(s,id,waiting=false){
-  if(id==='lemons'||id==='ice')return s[id]<capacity(s,id)&&s.cash>=ingredientCost(s);
+  if(id==='lemons'||id==='ice')return s[id]<capacity(s,id)&&(id==='lemons'&&s.farm?.standStock>0||s.cash>=ingredientCost(s));
   if(id==='mix')return s.lemons>0&&s.ice>0&&s.drinks<capacity(s,'drinks');
   if(id==='serve')return s.drinks>0&&waiting;
   if(id==='cash')return s.pendingCash>0;
@@ -78,15 +79,16 @@ export function canAct(s,id,waiting=false){
 }
 export function transact(s,id,waiting=false){
   if(!canAct(s,id,waiting))return s;
+  if(id==='lemons'&&s.farm?.standStock>0)return {...s,lemons:s.lemons+1,farmLemons:(s.farmLemons||0)+1,farm:{...s.farm,standStock:s.farm.standStock-1}};
   if(id==='lemons'||id==='ice')return {...s,[id]:s[id]+1,cash:cents(s.cash-ingredientCost(s)),totalExpenses:cents(s.totalExpenses+ingredientCost(s))};
-  if(id==='mix')return {...s,lemons:s.lemons-1,ice:s.ice-1,drinks:s.drinks+1};
+  if(id==='mix')return {...s,lemons:s.lemons-1,ice:s.ice-1,drinks:s.drinks+1,farmLemons:Math.max(0,(s.farmLemons||0)-1),farmDrinks:(s.farmDrinks||0)+((s.farmLemons||0)>0?1:0)};
   if(id==='serve'){
     const revenue=cents(s.price+.05*upgradeLevel(s,'tips'));
-    const operatingProfit=cents((s.operatingProfit||0)+revenue-ingredientCost(s)*2);
+    const operatingProfit=cents((s.operatingProfit||0)+revenue-ingredientCost(s)*((s.farmDrinks||0)>0?1:2));
     const profitPeak=Math.max(s.profitPeak||0,operatingProfit,0);
     const eligibleProfit=Math.max(0,operatingProfit-(s.profitPeak||0));
     const contribution=cents(eligibleProfit*(s.communityRate??5)/100);const sold=s.served+1;
-    return {...s,operatingProfit,profitPeak,drinks:s.drinks-1,served:sold,totalRevenue:cents(s.totalRevenue+revenue),community:cents(s.community+contribution),pendingCash:cents(s.pendingCash+revenue-contribution),history:[...s.history,{day:sold,sold:1,revenue,contribution}].slice(-50)};
+    return {...s,operatingProfit,profitPeak,farmDrinks:Math.max(0,(s.farmDrinks||0)-1),drinks:s.drinks-1,served:sold,totalRevenue:cents(s.totalRevenue+revenue),community:cents(s.community+contribution),pendingCash:cents(s.pendingCash+revenue-contribution),history:[...s.history,{day:sold,sold:1,revenue,contribution}].slice(-50)};
   }
   if(id==='cash')return {...s,cash:cents(s.cash+s.pendingCash),pendingCash:0};
   return s;

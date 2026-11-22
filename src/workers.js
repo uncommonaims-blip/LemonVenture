@@ -1,4 +1,4 @@
-import {capacity,canAct,transact,effects,willingToPay,upgradeLevel,ingredientCost} from './stand.js?v=8';
+import {capacity,canAct,transact,effects,willingToPay,upgradeLevel,ingredientCost} from './stand.js?v=9';
 const JOBS={runner:{name:'Runner',color:'#71a17a'},chef:{name:'Maker',color:'#bb8bba'},server:{name:'Server',color:'#6b9fb8'},cashier:{name:'Cashier',color:'#d79e61'}};
 for(const id of ['runner','chef','server','cashier'])JOBS[id+'2']={...JOBS[id],name:JOBS[id].name+' II'};
 export function syncWorkers(state,workers){return Object.entries(JOBS).filter(([id])=>state.upgrades.includes(id)).map(([id,job],i)=>workers.find(w=>w.id===id)||{id,...job,x:210+i*48,y:620,phase:0,progress:0,target:null,mode:'waiting'});}
@@ -7,7 +7,7 @@ export function stepWorkers(state,workers,stations,customers,dt){
  for(const w of workers){
   const job=w.id.replace('2',''),training=1+.1*upgradeLevel(s,job+'Training');
   const waiting=customers.find(c=>c.mode!=='leaving');let target=null;
-  if(job==='runner'&&s.cash>=ingredientCost(s)){if(s.lemons<capacity(s,'lemons')&&(s.lemons<=s.ice||s.ice>=capacity(s,'ice')))target='lemons';else if(s.ice<capacity(s,'ice'))target='ice';}
+  if(job==='runner'&&(s.cash>=ingredientCost(s)||s.farm?.standStock>0)){if(s.lemons<capacity(s,'lemons')&&(s.lemons<=s.ice||s.ice>=capacity(s,'ice')))target='lemons';else if(s.cash>=ingredientCost(s)&&s.ice<capacity(s,'ice'))target='ice';}
   if(job==='chef'&&canAct(s,'mix'))target='mix';
   if(job==='server'&&waiting&&willingToPay(s,waiting)&&canAct(s,'serve',waiting.mode==='waiting'))target='serve';
   if(job==='cashier'&&canAct(s,'cash'))target='cash';
