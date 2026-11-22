@@ -1,6 +1,6 @@
-import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed,effects,nextProject,developVillage,LOCATIONS,GAME_DAY_SECONDS,marketInfo,setPrice,moveLocation,advanceClock,willingToPay} from './stand.js?v=6';
-import {syncWorkers,stepWorkers} from './workers.js?v=6';
-import {drawVillage} from './village.js?v=6';
+import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed,effects,nextProject,developVillage,LOCATIONS,GAME_DAY_SECONDS,marketInfo,setPrice,moveLocation,advanceClock,willingToPay} from './stand.js?v=6.2';
+import {syncWorkers,stepWorkers} from './workers.js?v=6.2';
+import {drawVillage} from './village.js?v=6.2';
 const $=id=>document.getElementById(id), money=n=>'$'+n.toFixed(2);
 let state;try{state=restoreWalk(localStorage.getItem(KEY),localStorage.getItem('lemonventure.v1'));}catch{state=fresh();}
 let stations=getStations(state);let workers=syncWorkers(state,[]);let shopFilter='all',shopPage=0,buildAt=-100000,lastCommunity=state.community;let selectedLocation=state.location,clockTick=0;
@@ -61,10 +61,13 @@ const movementKeys=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','
 window.addEventListener('keydown',e=>{if(paused||/INPUT|TEXTAREA|BUTTON/.test(e.target.tagName))return;if(movementKeys.includes(e.key)){keys.add(e.key.toLowerCase());e.preventDefault();}});
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 $('pause').onclick=()=>{manualPause=!manualPause;syncPause();};
-function selectTab(name){for(const b of document.querySelectorAll('[data-tab]'))b.setAttribute('aria-pressed',String(b.dataset.tab===name));for(const id of ['upgrades','style','results','village','town'])$('tab-'+id).hidden=id!==name;if(name==='village')renderVillage();if(name==='town'){selectedLocation=state.location;renderTown();}}
+function selectTab(name){for(const b of document.querySelectorAll('[data-tab]'))b.setAttribute('aria-pressed',String(b.dataset.tab===name));for(const id of ['upgrades','style','results','village','town'])$('tab-'+id).hidden=id!==name;if(name==='results')renderResults();if(name==='village')renderVillage();if(name==='town'){selectedLocation=state.location;renderTown();}}
 function renderPanel(){
  $('name').value=state.name;$('color').value=state.color;$('price').value=state.price;$('price-value').textContent=money(state.price);
  renderShop();
+ renderResults();
+}
+function renderResults(){
  $('results').replaceChildren(...[['Customers served',state.served],['Total sales',money(state.totalRevenue)],['Supplies & upgrades',money(state.totalExpenses)],['Awaiting collection',money(state.pendingCash)],['Community chest',money(state.community)],['Invested in village',money(state.communityInvested)],['Village projects',state.villageLevel],['Reputation',Math.round(marketInfo(state).notoriety)+'/100'],['Rent paid',money(state.rentPaid)]].map(([label,value])=>{const p=document.createElement('p'),s=document.createElement('span'),b=document.createElement('strong');s.textContent=label;b.textContent=value;p.append(s,b);return p;}));
 }
 function renderShop(){
@@ -88,7 +91,7 @@ function renderTown(){
  $('town-economy').textContent=money(place.rent)+'/day · Traffic '+place.traffic.toFixed(2)+'× · Visibility '+place.visibility.toFixed(2)+'×';
  $('town-budgets').textContent='With your reputation: '+market.traffic.toFixed(2)+'× customer exposure · Typical budget ~'+money(market.willingness);
  $('lease').textContent=current?'✓ Current location':place.rent?'Rent here · '+money(place.rent)+' upfront':'Move here · free';$('lease').disabled=current||state.cash<place.rent;
- $('town-note').textContent=state.cash<place.rent?'You need '+money(place.rent-state.cash)+' more cash to rent here.':'A day is 2 minutes of active play. Rent is paid on moving and each new day. Moving starts a fresh day timer.';
+ $('town-note').textContent=current?'Current lease. Next rent in '+Math.ceil(GAME_DAY_SECONDS-state.dayElapsed)+' seconds of active play. No rent while paused or away.':state.cash<place.rent?'You need '+money(place.rent-state.cash)+' more cash to rent here.':'A day is 2 minutes of active play. Rent is paid on moving and each new day. Moving starts a fresh day timer.';
 }
 for(const b of document.querySelectorAll('[data-location]'))b.onclick=()=>{selectedLocation=b.dataset.location;renderTown();};
 $('lease').onclick=()=>{const next=moveLocation(state,selectedLocation);if(next===state)return;state=next;clockTick=0;customers=[];spawn=.5;changed();save();renderTown();say('Welcome to '+LOCATIONS[state.location].name+'!');};

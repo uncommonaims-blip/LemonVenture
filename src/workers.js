@@ -1,4 +1,4 @@
-import {capacity,canAct,transact,effects,willingToPay} from './stand.js?v=6';
+import {capacity,canAct,transact,effects,willingToPay} from './stand.js?v=6.2';
 const JOBS={runner:{name:'Runner',color:'#71a17a'},chef:{name:'Maker',color:'#bb8bba'},server:{name:'Server',color:'#6b9fb8'},cashier:{name:'Cashier',color:'#d79e61'}};
 export function syncWorkers(state,workers){return Object.entries(JOBS).filter(([id])=>state.upgrades.includes(id)).map(([id,job],i)=>workers.find(w=>w.id===id)||{id,...job,x:210+i*48,y:620,phase:0,progress:0,target:null,mode:'waiting'});}
 export function stepWorkers(state,workers,stations,customers,dt){
