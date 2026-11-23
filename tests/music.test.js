@@ -12,3 +12,7 @@ test('unsupported audio fails quietly and scheduling avoids catching up missed m
  const failed=new Chiptune({createContext:()=>{throw Error('No audio');}});await failed.unlock();assert.equal(failed.available,false);
  const c=fakeContext(),m=new Chiptune({createContext:()=>c,repeat:()=>1,cancel(){}});await m.unlock();c.currentTime=1000;m.schedule();assert.ok(m.nextTime>1000&&m.nextTime<1001);assert.ok(m.nodes.size<20);m.stop();
 });
+test('default browser timers are called without binding the audio instance as receiver',async()=>{
+ const originalSet=globalThis.setInterval,originalClear=globalThis.clearInterval;
+ try{globalThis.setInterval=function(){assert.equal(this,undefined);return 42;};globalThis.clearInterval=function(){assert.equal(this,undefined);};const m=new Chiptune({createContext:fakeContext});await m.unlock();assert.equal(m.available,true);assert.equal(m.timer,42);m.stop();assert.equal(m.timer,null);}finally{globalThis.setInterval=originalSet;globalThis.clearInterval=originalClear;}
+});
