@@ -1,4 +1,4 @@
-import {newFarm,restoreFarm} from './orchard.js?v=10';
+import {newFarm,restoreFarm} from './orchard.js?v=10.1';
 export const MOVE_SPEED = 190 * 1.3;
 export const MOVE_HOLD_MS = 80;
 export const EDIT_HOLD_MS = 650;

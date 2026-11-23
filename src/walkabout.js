@@ -1,13 +1,13 @@
-import {Chiptune} from './music.js?v=10';
-import {stepFarm,farmInfo,treePosition,harvest,water,dispatch,farmProject,buyFarmProject,drawOrchard} from './orchard.js?v=10';
-import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed,effects,nextProject,developVillage,LOCATIONS,GAME_DAY_SECONDS,marketInfo,setPrice,moveLocation,advanceClock,willingToPay,setCommunityRate,upgradeLevel,upgradeCost,upgradeAvailable,ingredientCost} from './stand.js?v=10';
-import {syncWorkers,stepWorkers} from './workers.js?v=10';
-import {drawVillage} from './village.js?v=10';
-import {drawSurroundings,drawStorefront,drawSupplyBin,drawMixer,drawRegister,THEMES} from './scenery.js?v=10';
+import {Chiptune} from './music.js?v=10.1';
+import {stepFarm,farmInfo,treePosition,harvest,water,dispatch,farmProject,buyFarmProject,drawOrchard} from './orchard.js?v=10.1';
+import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed,effects,nextProject,developVillage,LOCATIONS,GAME_DAY_SECONDS,marketInfo,setPrice,moveLocation,advanceClock,willingToPay,setCommunityRate,upgradeLevel,upgradeCost,upgradeAvailable,ingredientCost} from './stand.js?v=10.1';
+import {syncWorkers,stepWorkers} from './workers.js?v=10.1';
+import {drawVillage} from './village.js?v=10.1';
+import {drawSurroundings,drawStorefront,drawSupplyBin,drawMixer,drawRegister,THEMES} from './scenery.js?v=10.1';
 const $=id=>document.getElementById(id), money=n=>'$'+n.toFixed(2);
 const music=new Chiptune({onStatus:renderMusic});
 try{const prefs=JSON.parse(localStorage.getItem('lemonventure.music')||'{}');music.enabled=prefs.enabled!==false;if(Number.isFinite(prefs.volume))music.setVolume(prefs.volume);}catch{/* Use gentle defaults if preferences are unavailable. */}
-function renderMusic(){for(const id of ['music-toggle','music-settings-toggle']){$(id).textContent=music.enabled?'♫ Music on':'♫ Music off';$(id).setAttribute('aria-pressed',String(music.enabled));}if(!music.available)$('music-note').textContent='Audio is unavailable in this browser. The game still works.';}
+function renderMusic(){for(const id of ['music-toggle','music-settings-toggle']){$(id).textContent=music.enabled?'♫ Music on':'♫ Music off';$(id).setAttribute('aria-pressed',String(music.enabled));}$('music-note').textContent=music.available?'Original 8-bit melody. Starts after a tap and pauses when you leave the game.':'Audio is unavailable in this browser. The game still works.';}
 function saveMusic(){try{localStorage.setItem('lemonventure.music',JSON.stringify({enabled:music.enabled,volume:music.volume}));}catch{/* Audio remains usable without saved preferences. */}}
 for(const id of ['music-toggle','music-settings-toggle'])$(id).onclick=()=>{music.setEnabled(!music.enabled);saveMusic();};
 $('music-volume').value=Math.round(music.volume*100);
