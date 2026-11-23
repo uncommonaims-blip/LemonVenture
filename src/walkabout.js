@@ -1,9 +1,23 @@
-import {stepFarm,farmInfo,treePosition,harvest,water,dispatch,farmProject,buyFarmProject,drawOrchard} from './orchard.js?v=9.1';
-import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed,effects,nextProject,developVillage,LOCATIONS,GAME_DAY_SECONDS,marketInfo,setPrice,moveLocation,advanceClock,willingToPay,setCommunityRate,upgradeLevel,upgradeCost,upgradeAvailable,ingredientCost} from './stand.js?v=9.1';
-import {syncWorkers,stepWorkers} from './workers.js?v=9.1';
-import {drawVillage} from './village.js?v=9.1';
-import {drawSurroundings,drawStorefront,drawSupplyBin,drawMixer,drawRegister,THEMES} from './scenery.js?v=9.1';
+import {Chiptune} from './music.js?v=10';
+import {stepFarm,farmInfo,treePosition,harvest,water,dispatch,farmProject,buyFarmProject,drawOrchard} from './orchard.js?v=10';
+import {KEY,STATIONS,UPGRADES,fresh,restoreWalk,capacity,canAct,transact,purchase,canRestartGrant,FloatingStick,MOVE_SPEED,EDIT_HOLD_MS,getStations,boundPosition,placementAllowed,effects,nextProject,developVillage,LOCATIONS,GAME_DAY_SECONDS,marketInfo,setPrice,moveLocation,advanceClock,willingToPay,setCommunityRate,upgradeLevel,upgradeCost,upgradeAvailable,ingredientCost} from './stand.js?v=10';
+import {syncWorkers,stepWorkers} from './workers.js?v=10';
+import {drawVillage} from './village.js?v=10';
+import {drawSurroundings,drawStorefront,drawSupplyBin,drawMixer,drawRegister,THEMES} from './scenery.js?v=10';
 const $=id=>document.getElementById(id), money=n=>'$'+n.toFixed(2);
+const music=new Chiptune({onStatus:renderMusic});
+try{const prefs=JSON.parse(localStorage.getItem('lemonventure.music')||'{}');music.enabled=prefs.enabled!==false;if(Number.isFinite(prefs.volume))music.setVolume(prefs.volume);}catch{/* Use gentle defaults if preferences are unavailable. */}
+function renderMusic(){for(const id of ['music-toggle','music-settings-toggle']){$(id).textContent=music.enabled?'♫ Music on':'♫ Music off';$(id).setAttribute('aria-pressed',String(music.enabled));}if(!music.available)$('music-note').textContent='Audio is unavailable in this browser. The game still works.';}
+function saveMusic(){try{localStorage.setItem('lemonventure.music',JSON.stringify({enabled:music.enabled,volume:music.volume}));}catch{/* Audio remains usable without saved preferences. */}}
+for(const id of ['music-toggle','music-settings-toggle'])$(id).onclick=()=>{music.setEnabled(!music.enabled);saveMusic();};
+$('music-volume').value=Math.round(music.volume*100);
+$('music-volume').oninput=e=>{music.setVolume(Number(e.target.value)/100);saveMusic();};
+document.addEventListener('pointerdown',()=>void music.unlock(),{passive:true});
+document.addEventListener('keydown',()=>void music.unlock());
+window.addEventListener('pagehide',()=>music.setPaused(true));
+window.addEventListener('pageshow',()=>music.setPaused(manualPause||document.hidden));
+renderMusic();
+
 let state;try{state=restoreWalk(localStorage.getItem(KEY),localStorage.getItem('lemonventure.v1'));}catch{state=fresh();}
 let stations=getStations(state);let workers=syncWorkers(state,[]);let shopFilter='all',shopPage=0,buildAt=-100000,lastCommunity=state.community;let selectedLocation=state.location,clockTick=0;
 let scene='stand',farmPage='groves',farmTarget=null,farmProgress=0;
@@ -21,7 +35,7 @@ function updateHUD(){for(const [id,value] of [['cash',money(state.cash)],['pendi
 function resize(){cancelGesture();cancelDrag();const r=canvas.getBoundingClientRect();W=r.width;H=r.height;const dpr=Math.min(2,devicePixelRatio||1);canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);scale=Math.min(W/600,(H-62)/800);scale=Math.max(.1,scale);ox=(W-600*scale)/2;oy=36+(H-62-800*scale)/2;}
 new ResizeObserver(resize).observe(canvas);
 function stopInput(){cancelGesture();stick.stop();keys.clear();player.moving=false;$('stick').classList.remove('active');}
-function syncPause(){paused=manualPause||editing||$('panel').open||document.hidden;$('paused').hidden=!manualPause;$('pause').textContent=manualPause?'▶':'Ⅱ';$('pause').setAttribute('aria-pressed',String(manualPause));$('pause').setAttribute('aria-label',manualPause?'Resume game':'Pause game');if(paused)stopInput();}
+function syncPause(){music.setPaused(manualPause||document.hidden);paused=manualPause||editing||$('panel').open||document.hidden;$('paused').hidden=!manualPause;$('pause').textContent=manualPause?'▶':'Ⅱ';$('pause').setAttribute('aria-pressed',String(manualPause));$('pause').setAttribute('aria-label',manualPause?'Resume game':'Pause game');if(paused)stopInput();}
 function localPoint(e){const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
 function worldPoint(p){return {x:(p.x-ox)/scale,y:(p.y-oy)/scale};}
 function hitStation(p){if(scene==='village')return null;const w=worldPoint(p);return [...stations].reverse().find(s=>Math.abs(w.x-s.x)<Math.max(s.id==='serve'?104:55,24/scale)&&w.y>s.y-(s.id==='serve'?180:150)&&w.y<s.y+36);}
@@ -105,7 +119,7 @@ function openPanel(tab='upgrades'){if(editing)finishEdit();stopInput();renderPan
 $('menu').onclick=()=>openPanel('style');$('close').onclick=()=>$('panel').close();$('panel').addEventListener('close',()=>{syncPause();save();canvas.focus({preventScroll:true});});
 for(const b of document.querySelectorAll('[data-tab]'))b.onclick=()=>selectTab(b.dataset.tab);
 $('name').onchange=e=>{state.name=e.target.value.trim()||'My sunny stand';changed();save();};$('color').oninput=e=>{state.color=e.target.value;changed();save();};$('price').oninput=e=>{state=setPrice(state,Number(e.target.value));$('price-value').textContent=money(state.price);changed();save();};
-$('reset').onclick=()=>{if(confirm('Start a new adventure? This replaces your current walkabout progress.')){state=fresh();scene='stand';$('visit-farm').textContent='🌳';$('price-controls').hidden=false;$('farm-tools').hidden=true;$('visit-farm').setAttribute('aria-label','Visit lemon village');stations=getStations(state);workers=[];clockTick=0;selectedLocation='backyard';buildAt=-100000;customers=[];particles=[];player.x=300;player.y=555;spawn=1.5;progress=0;activeStation=null;upgradeLatch=false;changed();save();$('panel').close();say('Fresh start! Walk to the lemon ring.');}};
+$('reset').onclick=()=>{if(confirm('Start a new adventure? This replaces your current walkabout progress.')){state=fresh();scene='stand';music.scene='stand';$('visit-farm').textContent='🌳';$('price-controls').hidden=false;$('farm-tools').hidden=true;$('visit-farm').setAttribute('aria-label','Visit lemon village');stations=getStations(state);workers=[];clockTick=0;selectedLocation='backyard';buildAt=-100000;customers=[];particles=[];player.x=300;player.y=555;spawn=1.5;progress=0;activeStation=null;upgradeLatch=false;changed();save();$('panel').close();say('Fresh start! Walk to the lemon ring.');}};
 $('grant').onclick=()=>{if(canRestartGrant(state)){state={...state,cash:state.cash+5};changed();save();say('A $5 practice grant. Keep some cash for ingredients!');}};
 function puff(x,y,text,color='#173e35'){particles.push({x,y,text,color,age:0});}
 function nextHint(){if(state.drinks>0)return 'Carry your drinks to the SERVE ring.';if(state.pendingCash>=3)return 'Visit CASH to collect your earnings.';if(!state.lemons)return 'Walk to LEMONS. Hold in the ring to collect.';if(!state.ice)return 'Now collect ICE from the blue ring.';return 'Bring lemons + ice to MIX to make lemonade.';}
@@ -170,7 +184,7 @@ function draw(){
 function frame(now){const dt=Math.min(.04,(now-(last||now))/1000);last=now;if(!paused)update(dt,now);draw();if($('panel').open&&!$('tab-village').hidden){const preview=$('village-preview');preview.getContext('2d').clearRect(0,0,preview.width,preview.height);drawVillage(preview.getContext('2d'),0,0,preview.width,preview.height,state.villageLevel,(now-buildAt)/1000);}requestAnimationFrame(frame);}
 updateHUD();resize();syncPause();requestAnimationFrame(frame);
 
-function switchScene(){if(editing)finishEdit();stopInput();scene=scene==='stand'?'village':'stand';farmTarget=null;farmProgress=0;progress=0;activeStation=null;player.x=300;player.y=scene==='village'?750:555;$('visit-farm').textContent=scene==='village'?'🥤':'🌳';$('play-hint').textContent=scene==='village'?'Hold + drag to walk · Stand in tree rings to water or harvest':'Hold + drag to walk · Hold a station to rearrange';$('visit-farm').setAttribute('aria-label',scene==='village'?'Return to lemonade stand':'Visit lemon village');$('price-controls').hidden=scene==='village';$('farm-tools').hidden=scene!=='village';$('grant').hidden=scene==='village'||!canRestartGrant(state);canvas.setAttribute('aria-label',scene==='village'?'Lemon village. Hold and drag to move. Stand in tree rings to water or harvest; stand at the shed to dispatch.':'Lemonade stand play area. Hold and drag to move.');changed();save();say(scene==='village'?'Walk to a tree ring to harvest or water. Visit the shed to dispatch.':'Back at your lemonade stand.');canvas.focus({preventScroll:true});}
+function switchScene(){if(editing)finishEdit();stopInput();scene=scene==='stand'?'village':'stand';music.scene=scene;farmTarget=null;farmProgress=0;progress=0;activeStation=null;player.x=300;player.y=scene==='village'?750:555;$('visit-farm').textContent=scene==='village'?'🥤':'🌳';$('play-hint').textContent=scene==='village'?'Hold + drag to walk · Stand in tree rings to water or harvest':'Hold + drag to walk · Hold a station to rearrange';$('visit-farm').setAttribute('aria-label',scene==='village'?'Return to lemonade stand':'Visit lemon village');$('price-controls').hidden=scene==='village';$('farm-tools').hidden=scene!=='village';$('grant').hidden=scene==='village'||!canRestartGrant(state);canvas.setAttribute('aria-label',scene==='village'?'Lemon village. Hold and drag to move. Stand in tree rings to water or harvest; stand at the shed to dispatch.':'Lemonade stand play area. Hold and drag to move.');changed();save();say(scene==='village'?'Walk to a tree ring to harvest or water. Visit the shed to dispatch.':'Back at your lemonade stand.');canvas.focus({preventScroll:true});}
 $('visit-farm').onclick=switchScene;
 $('village-explore').onclick=()=>{$('panel').close();if(scene!=='village')switchScene();};
 $('farm-manage').onclick=()=>openPanel('farm');

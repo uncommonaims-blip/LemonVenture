@@ -20,3 +20,5 @@ body>#price-controls{position:static;transform:none;align-self:center;margin:4px
 @media(max-width:480px){header{gap:3px;padding-left:6px;padding-right:6px}header .brand{font-size:14px;white-space:nowrap}header button{min-width:32px;width:34px;padding:4px!important;flex-shrink:0}header #shop{font-size:0}header #shop:after{content:'↑';font-size:18px}}
 
 #farm-tools{position:static;transform:none;margin:4px auto 0;flex-shrink:0}#farm-tools button{min-height:38px}
+
+.music-bar{position:fixed;bottom:0;right:6px;z-index:4}.music-bar button{min-height:27px;min-width:76px;font-size:10px;padding:3px 7px;border-radius:8px;background:#faf7edee}footer{padding-right:86px;padding-left:6px}.music-settings label{margin:6px 0}.music-settings p{font-size:10px}
